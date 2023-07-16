@@ -8,7 +8,6 @@ public class RulerObjST : MonoBehaviour
     public LineRenderer _lineObj;
     public Transform _textObj;
     public TextMesh _text;
-    public Transform _mainCam;
 
     public void SetInit(Vector3 pos)
     {
@@ -21,17 +20,17 @@ public class RulerObjST : MonoBehaviour
         _objList[1].transform.position = pos;
         _lineObj.SetPosition(1,pos);
     }
-
-    void Update()
+    public void checkline()
     {
         Vector3 tVec = _objList[1].position - _objList[0].position;
-        _textObj.position = _objList[0].position + tVec*0.5f;
+        _textObj.position = _objList[0].position + tVec * 0.5f;
 
         float tDis = tVec.magnitude;
-        string tDisText = string.Format("{0}mm",tDis.ToString("N2"));
+        string tDisText = string.Format("{0}mm", tDis.ToString("N2"));
         _text.text = tDisText;
 
-        _textObj.LookAt(_mainCam);
+        _textObj.LookAt(Camera.main.transform);
     }
+    
 
 }

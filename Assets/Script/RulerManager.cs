@@ -4,19 +4,19 @@ using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
 using UnityEngine.UI;
+using TMPro;
 
 public class RulerManager : MonoBehaviour
 {
     public ARRaycastManager m_RaycastManager;
     static List<ARRaycastHit> s_Hits = new List<ARRaycastHit>();
-    public Vector2 _centerVec;
-    public Transform _camPivot;
-    public Transform _pivot;
+    private Vector2 _centerVec;
     public Transform _rulerPool;
     public GameObject _rulerObj;
-    private RulerObjST _nowRulerObj; 
+    public TMP_Text nowdismater;
+    private RulerObjST _nowRulerObj;
     private List<RulerObjST> _rulerObjList =new List<RulerObjST>();
-    private bool _rulerEnable;
+    private bool _rulerEnable=false;
     private Vector3 _rulerPosSave;
     // Start is called before the first frame update
     void Start()
@@ -27,41 +27,38 @@ public class RulerManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if(m_RaycastManager.Raycast(_centerVec, s_Hits, TrackableType.PlaneWithinPolygon))
+        if (Input.touchCount > 0)
         {
-            var hitPose = s_Hits[0].pose; // 첫번째로 측정된 면의 정보를 가져옴.
-            float hitDis = s_Hits[0].distance;
-            if(hitDis < 0.1f) hitDis = 0.1f;
-            if(hitDis > 0.5f) hitDis = 0.5f;
-            hitDis = hitDis * -0.25f + 1.45f;
-
-            _rulerEnable = true;
-            _rulerPosSave = hitPose.position;
-            _pivot.localScale = new Vector3(hitDis,hitDis,hitDis);
-            _pivot.position = Vector3.Lerp(_pivot.position, hitPose.position,0.2f);
-            _pivot.rotation = Quaternion.Lerp(_pivot.rotation,hitPose.rotation,0.2f);
-
-            if(_nowRulerObj!=null)
-            {
-                _nowRulerObj.SetObj(hitPose.position);
-            }
+                if (Input.GetTouch(0).phase == TouchPhase.Began)
+                {
+                    _centerVec = Input.GetTouch(0).position;
+                    RayCast();
+                    MakeRulerObj();
+                }
+                else if (Input.GetTouch(0).phase == TouchPhase.Moved)
+                {
+                    _centerVec = Input.GetTouch(0).position;
+                    RayCast();
+                }
+                else if (Input.GetTouch(0).phase == TouchPhase.Ended)
+                {
+                    _centerVec = Input.GetTouch(0).position;
+                    RayCast();
+                    MakeRulerObj();
+                }
         }
         else
         {
-            _rulerEnable = false;
-            Quaternion tRot = Quaternion.Euler(90f,0,0);
-            _pivot.localScale = new Vector3(0.5f,0.5f,0.5f);
-            _pivot.rotation = Quaternion.Lerp(_pivot.rotation,tRot,0.5f);
-            _pivot.localPosition = Vector3.Lerp(_pivot.localPosition, Vector3.zero,0.5f);
-            
+            _centerVec = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+            RayCast();
         }
+        
     }
 
     public void MakeRulerObj()
     {
-        if(_rulerEnable)
-        {
-            if(_nowRulerObj==null)
+      
+            if(_rulerEnable ==false)
             {
                 Debug.Log(_rulerObj);
                 GameObject tObj = Instantiate(_rulerObj) as GameObject;
@@ -70,16 +67,45 @@ public class RulerManager : MonoBehaviour
                 tObj.transform.localScale = new Vector3(1,1,1);
 
                 RulerObjST tObjST = tObj.GetComponent<RulerObjST>();
-                tObjST._mainCam = _camPivot;
                 tObjST.SetInit(_rulerPosSave);
                 _rulerObjList.Add(tObjST);
-                _nowRulerObj = tObjST;
+                _nowRulerObj = tObjST; 
+                _rulerEnable = true;
+               nowdismater.gameObject.SetActive(true);
             }
             else
             {
-                _nowRulerObj = null;
+                 _rulerEnable = false;
+                 _nowRulerObj = null;
+                 nowdismater.gameObject.SetActive(false);
+                 _rulerPosSave = Vector3.zero;
             }
-        }
         
     }
+    public void RayCast()
+    {
+        if (m_RaycastManager.Raycast(_centerVec, s_Hits, TrackableType.PlaneWithinPolygon))
+        {
+
+            var hitPose = s_Hits[0].pose; // 첫번째로 측정된 면의 정보를 가져옴.
+            _rulerPosSave = hitPose.position;
+
+            if (_nowRulerObj != null && _rulerEnable)
+            {
+                _nowRulerObj.SetObj(hitPose.position);
+                _nowRulerObj.checkline();
+                nowdismater.text = _nowRulerObj._text.text;
+            }
+
+        }
+    }
+    public void listreset()
+    {
+        for(int i =0; i< _rulerObjList.Count; i++)
+            Destroy(_rulerObjList[i].gameObject);
+        _rulerObjList.Clear();
+        _nowRulerObj = null;
+        _rulerPosSave = Vector3.zero;
+    }
+  
 }
